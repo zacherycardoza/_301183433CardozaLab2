@@ -1,9 +1,37 @@
 pipeline {
     agent any
+
     stages {
-        stage('Build') {
+        stage('Checkout') {
+            steps {
+                git 'https://https://github.com/zacherycardoza/_301183433CardozaLab2.git'
+            }
+        }
+        stage('Build Maven Project') {
             steps {
                 sh 'mvn clean package'
+            }
+        }
+        stage('Docker Build') {
+            steps {
+                sh 'docker build -t _301183433cardozalab2:latest .'
+            }
+        }
+        stage('Docker Login and Push') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                    sh "docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD"
+                }
+
+                sh 'docker push zacherycardoza/_301183433cardozalab2:latest'
+            }
+        }
+        stage('Deploy to Web Server') {
+            steps {
+                sshagent(['your-ssh-credentials']) {
+                    sh 'ssh "docker pull zacherycardoza/_301183433cardozalab2:latest"'
+                    sh 'ssh "docker run -d -p 8080:8080 zacherycardoza/_301183433cardozalab2:latest"'
+                }
             }
         }
     }
